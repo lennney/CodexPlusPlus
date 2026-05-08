@@ -37,7 +37,7 @@ def evaluate_script(websocket_url: str, script: str) -> dict[str, object]:
         payload = {
             "id": 1,
             "method": "Runtime.evaluate",
-            "params": {"expression": script, "awaitPromise": False},
+            "params": {"expression": script, "awaitPromise": False, "allowUnsafeEvalBlockedByCSP": True},
         }
         ws.send(json.dumps(payload))
         while True:
@@ -74,13 +74,11 @@ def build_bridge_script(binding_name: str) -> str:
   }});
 }})();
 """
-
-
 def install_bridge(websocket_url: str, binding_name: str, handler: BridgeHandler) -> websocket.WebSocket:
     ws = websocket.create_connection(websocket_url, timeout=5)
     ws.send(json.dumps({"id": 1, "method": "Runtime.addBinding", "params": {"name": binding_name}}))
     _wait_for_id(ws, 1)
-    ws.send(json.dumps({"id": 2, "method": "Runtime.evaluate", "params": {"expression": build_bridge_script(binding_name), "awaitPromise": False}}))
+    ws.send(json.dumps({"id": 2, "method": "Runtime.evaluate", "params": {"expression": build_bridge_script(binding_name), "awaitPromise": False, "allowUnsafeEvalBlockedByCSP": True}}))
     _wait_for_id(ws, 2)
     thread = threading.Thread(target=_bridge_loop, args=(ws, handler), daemon=True)
     thread.start()
@@ -96,7 +94,6 @@ def inject_file(port: int, script_path: Path, helper_port: int, handler: BridgeH
     prefix = f"window.__CODEX_SESSION_DELETE_HELPER__ = 'http://127.0.0.1:{helper_port}';\n"
     result = evaluate_script(websocket_url, prefix + script)
     return bridge_socket or result
-
 
 def _bridge_loop(ws: websocket.WebSocket, handler: BridgeHandler) -> None:
     while True:
@@ -122,12 +119,12 @@ def _bridge_loop(ws: websocket.WebSocket, handler: BridgeHandler) -> None:
 
 def _resolve_bridge(ws: websocket.WebSocket, request_id: str, result: dict[str, object]) -> None:
     expression = f"window.__codexSessionDeleteResolve({json.dumps(request_id)}, {json.dumps(result)})"
-    ws.send(json.dumps({"id": _next_id(), "method": "Runtime.evaluate", "params": {"expression": expression, "awaitPromise": False}}))
+    ws.send(json.dumps({"id": _next_id(), "method": "Runtime.evaluate", "params": {"expression": expression, "awaitPromise": False, "allowUnsafeEvalBlockedByCSP": True}}))
 
 
 def _reject_bridge(ws: websocket.WebSocket, request_id: str, message: str) -> None:
     expression = f"window.__codexSessionDeleteReject({json.dumps(request_id)}, {json.dumps(message)})"
-    ws.send(json.dumps({"id": _next_id(), "method": "Runtime.evaluate", "params": {"expression": expression, "awaitPromise": False}}))
+    ws.send(json.dumps({"id": _next_id(), "method": "Runtime.evaluate", "params": {"expression": expression, "awaitPromise": False, "allowUnsafeEvalBlockedByCSP": True}}))
 
 
 def _wait_for_id(ws: websocket.WebSocket, message_id: int) -> dict[str, object]:
