@@ -63,17 +63,17 @@ def test_renderer_script_debounces_mutation_observer_scan():
     assert "codexSessionDeleteScanFailures" in text
     assert "runScanStep(scanLightweight)" in text
     assert "requestAnimationFrame(() => runScanStep(scanDeferred))" in text
-    assert "if (window.__codexSessionDeleteScanPending) {" in text
-    assert "setTimeout(runScheduledScan, 50)" in text
-    assert "setTimeout(() => runScanStep(scanDeferred), 50)" in text
+    assert "if (window.__codexSessionDeleteScanPending) return" in text
+    assert "setTimeout(runScheduledScan, 200)" in text
+    assert "setTimeout(() => runScanStep(scanDeferred), 50)" not in text
     assert "codexSessionDeleteAttachButtonFailures" in text
     assert "tryAttachButton" in text
     assert "sessionRows().forEach(tryAttachButton)" in text
     assert "sessionRows().forEach(attachButton)" not in text
     assert "new MutationObserver(scheduleScan)" in text
     assert "new MutationObserver(scan)" not in text
-    assert "scheduleScan();" in text
-    assert "  scan();\n  window.__codexSessionDeleteObserver" not in text
+    assert "scan();" in text
+    assert "  scan();\n  window.__codexSessionDeleteObserver" in text
 
 
 def test_renderer_script_clears_focus_and_removes_deleted_rows():
@@ -171,7 +171,22 @@ def test_renderer_script_sidebar_delete_opens_on_pointerup_when_click_is_unrelia
     assert "已归档对话" in text
 
 
-def test_renderer_script_adds_codex_plus_menu_with_feature_toggles():
+def test_renderer_script_does_not_include_fast_mode_patch():
+    text = Path("codex_session_delete/inject/renderer-inject.js").read_text(encoding="utf-8")
+    assert "codexFastModeUnlockVersion" not in text
+    assert "enableFastModeFeatureFlags" not in text
+    assert "patchFastModeGates" not in text
+    assert "patchGeneralSettingsSpeedGate" not in text
+    assert "patchCodexPostForFastMode" not in text
+    assert "recordFastModeDiagnostic" not in text
+    assert "additionalSpeedTiers" not in text
+    assert "bodyJsonString" not in text
+    assert "forceChatGPTAuthForFastMode" not in text
+    assert "codex-fast-mode-row" not in text
+    assert "setAuthMethod(\"chatgpt\")" in text
+    assert "patchFastModeGateOnObject" not in text
+
+
     text = Path("codex_session_delete/inject/renderer-inject.js").read_text(encoding="utf-8")
     assert "installCodexPlusMenu" in text
     assert "Codex++" in text

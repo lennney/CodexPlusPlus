@@ -398,17 +398,33 @@
     });
   }
 
-  function sessionRows() {
-    const codexThreads = Array.from(document.querySelectorAll('[data-app-action-sidebar-thread-id]'));
-    if (codexThreads.length > 0) return codexThreads;
+  let cachedSessionRows = [];
+  let cachedSessionRowsAt = 0;
 
-    const candidates = Array.from(document.querySelectorAll("a, button, [role='button'], [data-testid], li, div"));
-    return candidates.filter((element) => {
+  function sessionRows(forceRefresh = false) {
+    const now = Date.now();
+    if (!forceRefresh && now - cachedSessionRowsAt < 150) {
+      cachedSessionRows = cachedSessionRows.filter((row) => row.isConnected);
+      if (cachedSessionRows.length > 0) return cachedSessionRows;
+    }
+
+    const codexThreads = Array.from(document.querySelectorAll('[data-app-action-sidebar-thread-id]'));
+    if (codexThreads.length > 0) {
+      cachedSessionRows = codexThreads;
+      cachedSessionRowsAt = now;
+      return cachedSessionRows;
+    }
+
+    const candidates = Array.from(document.querySelectorAll("a[href*='session'], a[href*='conversation'], a[href*='thread'], button[data-testid*='session'], button[data-testid*='conversation'], button[data-testid*='thread'], [role='button'][data-testid*='session'], [role='button'][data-testid*='conversation'], [role='button'][data-testid*='thread'], li[data-testid*='session'], li[data-testid*='conversation'], li[data-testid*='thread']"));
+    cachedSessionRows = candidates.filter((element) => {
       const text = (element.textContent || "").trim();
       const href = element.getAttribute("href") || "";
-      const hasSessionHint = /session|conversation|thread/i.test(href + " " + element.outerHTML.slice(0, 400));
+      const testId = element.getAttribute("data-testid") || "";
+      const hasSessionHint = /session|conversation|thread/i.test(href + " " + testId);
       return text.length > 0 && text.length < 200 && hasSessionHint;
     });
+    cachedSessionRowsAt = now;
+    return cachedSessionRows;
   }
 
   function archivedPageRows() {
@@ -799,25 +815,37 @@
   function scan() {
     runScanStep(scanLightweight);
     requestAnimationFrame(() => runScanStep(scanDeferred));
-    setTimeout(() => runScanStep(scanDeferred), 50);
+  }
+
+  function shouldScheduleScan(mutations) {
+    if (!mutations) return true;
+    return mutations.some((mutation) => {
+      const target = mutation.target;
+      if (target?.closest?.(".codex-delete-toast, .codex-delete-confirm-overlay, .codex-plus-modal-overlay, #codex-plus-menu")) return false;
+      return Array.from(mutation.addedNodes).some((node) => {
+        if (node.nodeType !== 1) return false;
+        if (node.closest?.(".codex-delete-toast, .codex-delete-confirm-overlay, .codex-plus-modal-overlay, #codex-plus-menu")) return false;
+        return true;
+      }) || Array.from(mutation.removedNodes).some((node) => node.nodeType === 1);
+    });
   }
 
   function runScheduledScan() {
-    if (window.__codexSessionDeleteScanPending) {
-      window.__codexSessionDeleteScanPending = false;
-    }
+    window.__codexSessionDeleteScanPending = false;
+    clearTimeout(window.__codexSessionDeleteScanTimer);
+    window.__codexSessionDeleteScanTimer = null;
     scan();
   }
 
-  function scheduleScan() {
+  function scheduleScan(mutations) {
+    if (!shouldScheduleScan(mutations)) return;
     if (window.__codexSessionDeleteScanPending) return;
     window.__codexSessionDeleteScanPending = true;
-    requestAnimationFrame(runScheduledScan);
-    setTimeout(runScheduledScan, 50);
+    window.__codexSessionDeleteScanTimer = setTimeout(runScheduledScan, 200);
   }
 
-  scheduleScan();
+  scan();
   window.__codexSessionDeleteObserver?.disconnect();
   window.__codexSessionDeleteObserver = new MutationObserver(scheduleScan);
-  window.__codexSessionDeleteObserver.observe(document.documentElement, { childList: true, subtree: true });
+  window.__codexSessionDeleteObserver.observe(document.body || document.documentElement, { childList: true, subtree: true });
 })();
