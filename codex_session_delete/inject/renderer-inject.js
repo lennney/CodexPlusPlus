@@ -6,7 +6,7 @@
   const codexPlusMenuId = "codex-plus-menu";
   const codexDeleteVersion = "5";
   const codexArchiveDeleteAllVersion = "2";
-  const codexPlusVersion = "1.0.1";
+  const codexPlusVersion = "1.0.4";
   const codexPlusSettingsKey = "codexPlusSettings";
 
   function installStyle() {
@@ -108,17 +108,34 @@
       #${codexPlusMenuId}.codex-plus-menu-floating {
         position: fixed;
         top: 0;
-        left: 240px;
+        right: 140px;
+        left: auto;
         z-index: 2147483645;
         height: 30px;
         color: #d1d5db;
         font: 13px system-ui, sans-serif;
+        text-align: right;
+        pointer-events: auto;
+        -webkit-app-region: no-drag;
       }
       #${codexPlusMenuId} {
         display: inline-flex;
         align-items: center;
         height: 100%;
         flex: 0 0 auto;
+        pointer-events: auto;
+        -webkit-app-region: no-drag;
+      }
+      .codex-plus-trigger {
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        height: 100%;
+        padding: 0 8px;
+        cursor: pointer;
+        pointer-events: auto;
+        -webkit-app-region: no-drag;
       }
       .codex-plus-modal-overlay {
         position: fixed;
@@ -188,7 +205,7 @@
   }
 
   function defaultCodexPlusSettings() {
-    return { pluginEntryUnlock: true, forcePluginInstall: true, sessionDelete: true };
+    return { pluginEntryUnlock: true, forcePluginInstall: true, sessionDelete: true, nativeMenuPlacement: true };
   }
 
   function codexPlusSettings() {
@@ -238,6 +255,10 @@
             <button type="button" class="codex-plus-toggle" data-codex-plus-setting="sessionDelete"><span></span></button>
           </div>
           <div class="codex-plus-row">
+            <div><div class="codex-plus-row-title">原生菜单栏位置</div><div class="codex-plus-row-description">把 Codex++ 菜单插入顶部原生菜单栏；默认关闭以避免页面重渲染冲突。</div></div>
+            <button type="button" class="codex-plus-toggle" data-codex-plus-setting="nativeMenuPlacement"><span></span></button>
+          </div>
+          <div class="codex-plus-row">
             <div><div class="codex-plus-row-title">关于 Codex++</div><div class="codex-plus-about">Codex++ 是通过外部 launcher 注入的增强菜单，不修改 Codex App 原始安装文件。<br>GitHub: <a href="https://github.com/BigPizzaV3/CodexPlusPlus" target="_blank" rel="noreferrer">https://github.com/BigPizzaV3/CodexPlusPlus</a></div></div>
           </div>
           <div class="codex-plus-row">
@@ -268,6 +289,7 @@
   }
 
   function findNativeMenuInsertionPoint() {
+    if (!codexPlusSettings().nativeMenuPlacement) return null;
     const header = document.querySelector(".app-header-tint");
     const menuBar = header?.querySelector(".flex.items-center.gap-0\\.5") || header?.querySelector('[class*="flex items-center gap-0.5"]');
     if (!menuBar) return null;

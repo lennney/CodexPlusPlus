@@ -196,7 +196,7 @@ def test_renderer_script_does_not_include_fast_mode_patch():
     text = Path("codex_session_delete/inject/renderer-inject.js").read_text(encoding="utf-8")
     assert "installCodexPlusMenu" in text
     assert "Codex++" in text
-    assert "codexPlusVersion" in text
+    assert "codexPlusVersion = \"1.0.4\"" in text
     assert "Codex++ ${codexPlusVersion}" in text
     assert "提出问题" in text
     assert "https://github.com/BigPizzaV3/CodexPlusPlus/issues" in text
@@ -204,6 +204,8 @@ def test_renderer_script_does_not_include_fast_mode_patch():
     assert "插件选项解锁" in text
     assert "特殊插件强制安装" in text
     assert "会话删除" in text
+    assert "原生菜单栏位置" in text
+    assert "nativeMenuPlacement: true" in text
     assert "关于 Codex++" in text
     assert "https://github.com/BigPizzaV3/CodexPlusPlus" in text
     assert "codexPlusSettings" in text
@@ -218,6 +220,12 @@ def test_renderer_script_does_not_include_fast_mode_patch():
     assert "backdrop-blur-xl" not in text
     assert "codex-plus-menu-floating" in text
     assert "findNativeMenuInsertionPoint" in text
+    assert "if (!codexPlusSettings().nativeMenuPlacement) return null" in text
+    assert "right: 140px" in text
+    assert "left: auto" in text
+    assert "pointer-events: auto" in text
+    assert "-webkit-app-region: no-drag" in text
+    assert ".codex-plus-trigger" in text
     assert "app-header-tint" in text
     assert "flex items-center gap-0.5" in text
     assert "codex-plus-menu-floating" in text
