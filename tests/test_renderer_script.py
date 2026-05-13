@@ -133,6 +133,17 @@ def test_renderer_script_timeline_positions_all_questions_by_document_order():
 
 
 
+def test_renderer_script_timeline_has_codex_plus_menu_toggle():
+    text = Path("codex_session_delete/inject/renderer-inject.js").read_text(encoding="utf-8")
+
+    assert "conversationTimeline: true" in text
+    assert "对话 Timeline" in text
+    assert "data-codex-plus-setting=\"conversationTimeline\"" in text
+    assert "codexPlusSettings().conversationTimeline" in text
+    assert "removeConversationTimeline()" in text[text.index("function refreshConversationTimeline"):text.index("\n\n  function scanLightweight")]
+
+
+
 def test_renderer_script_enables_plugin_entry_for_api_key_users():
     text = Path("codex_session_delete/inject/renderer-inject.js").read_text(encoding="utf-8")
     start = text.index("function pluginEntryButton")
