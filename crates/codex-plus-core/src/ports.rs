@@ -32,13 +32,13 @@ pub fn launcher_guard_port() -> u16 {
     if let Some(port) = std::env::var("CODEX_PLUS_GUARD_PORT")
         .or_else(|_| std::env::var("CODEX_PLUS_LAUNCHER_GUARD_PORT"))
         .ok()
-        .and_then(|v| v.parse().ok())
+        .and_then(|v| v.parse::<u16>().ok())
     {
         return port;
     }
     if let Some(offset) = std::env::var("CODEX_PLUS_GUARD_PORT_OFFSET")
         .ok()
-        .and_then(|v| v.parse().ok())
+        .and_then(|v| v.parse::<u16>().ok())
     {
         return LAUNCHER_GUARD_PORT_BASE + offset;
     }
@@ -50,13 +50,13 @@ pub fn manager_guard_port() -> u16 {
     if let Some(port) = std::env::var("CODEX_PLUS_GUARD_PORT")
         .or_else(|_| std::env::var("CODEX_PLUS_MANAGER_GUARD_PORT"))
         .ok()
-        .and_then(|v| v.parse().ok())
+        .and_then(|v| v.parse::<u16>().ok())
     {
         return port;
     }
     if let Some(offset) = std::env::var("CODEX_PLUS_GUARD_PORT_OFFSET")
         .ok()
-        .and_then(|v| v.parse().ok())
+        .and_then(|v| v.parse::<u16>().ok())
     {
         return MANAGER_GUARD_PORT_BASE + offset;
     }
