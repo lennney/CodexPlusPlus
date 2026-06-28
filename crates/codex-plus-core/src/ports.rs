@@ -319,33 +319,33 @@ mod tests {
 
     #[test]
     fn launcher_guard_port_honors_env_override() {
-        std::env::set_var("CODEX_PLUS_GUARD_PORT", "9999");
+        unsafe { std::env::set_var("CODEX_PLUS_GUARD_PORT", "9999") };
         let port = launcher_guard_port();
-        std::env::remove_var("CODEX_PLUS_GUARD_PORT");
+        unsafe { std::env::remove_var("CODEX_PLUS_GUARD_PORT") };
         assert_eq!(port, 9999);
     }
 
     #[test]
     fn launcher_guard_port_honors_specific_env_override() {
-        std::env::set_var("CODEX_PLUS_LAUNCHER_GUARD_PORT", "8888");
+        unsafe { std::env::set_var("CODEX_PLUS_LAUNCHER_GUARD_PORT", "8888") };
         let port = launcher_guard_port();
-        std::env::remove_var("CODEX_PLUS_LAUNCHER_GUARD_PORT");
+        unsafe { std::env::remove_var("CODEX_PLUS_LAUNCHER_GUARD_PORT") };
         assert_eq!(port, 8888);
     }
 
     #[test]
     fn manager_guard_port_honors_specific_env_override() {
-        std::env::set_var("CODEX_PLUS_MANAGER_GUARD_PORT", "7777");
+        unsafe { std::env::set_var("CODEX_PLUS_MANAGER_GUARD_PORT", "7777") };
         let port = manager_guard_port();
-        std::env::remove_var("CODEX_PLUS_MANAGER_GUARD_PORT");
+        unsafe { std::env::remove_var("CODEX_PLUS_MANAGER_GUARD_PORT") };
         assert_eq!(port, 7777);
     }
 
     #[test]
     fn launcher_guard_port_honors_offset_env() {
-        std::env::set_var("CODEX_PLUS_GUARD_PORT_OFFSET", "50");
+        unsafe { std::env::set_var("CODEX_PLUS_GUARD_PORT_OFFSET", "50") };
         let port = launcher_guard_port();
-        std::env::remove_var("CODEX_PLUS_GUARD_PORT_OFFSET");
+        unsafe { std::env::remove_var("CODEX_PLUS_GUARD_PORT_OFFSET") };
         assert_eq!(port, LAUNCHER_GUARD_PORT_BASE + 50);
     }
 }
