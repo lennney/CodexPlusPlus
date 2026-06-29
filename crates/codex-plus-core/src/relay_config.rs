@@ -329,7 +329,7 @@ pub fn apply_relay_files_to_home_with_context(
     let selected_common = filter_common_config_for_selection(common_config_contents, selection)?;
     let config_with_common = merge_common_config_into_config(config_contents, &selected_common)?;
     let config_with_limits =
-        apply_context_limits_to_config(&config_with_common, context_window, auto_compact_limit)?;
+        apply_context_limits_to_config(home, &config_with_common, context_window, auto_compact_limit)?;
     apply_relay_files_to_home(home, &config_with_limits, auth_contents)
 }
 
@@ -346,6 +346,7 @@ pub fn apply_relay_profile_files_to_home_with_context(
     let profile_config = complete_relay_profile_config(profile)?;
     let config_with_common = merge_common_config_into_config(&profile_config, &selected_common)?;
     let config_with_limits = apply_context_limits_to_config(
+        home,
         &config_with_common,
         &profile.context_window,
         &profile.auto_compact_limit,
@@ -366,6 +367,7 @@ pub fn apply_relay_profile_to_home_with_switch_rules(
     let profile_config = complete_relay_profile_config(profile)?;
     let config_with_common = merge_common_config_into_config(&profile_config, &selected_common)?;
     let config_with_limits = apply_context_limits_to_config(
+        home,
         &config_with_common,
         &profile.context_window,
         &profile.auto_compact_limit,
@@ -392,6 +394,7 @@ pub fn apply_relay_profile_config_to_home_with_context(
     let profile_config = complete_relay_profile_config(profile)?;
     let config_with_common = merge_common_config_into_config(&profile_config, &selected_common)?;
     let config_with_limits = apply_context_limits_to_config(
+        home,
         &config_with_common,
         &profile.context_window,
         &profile.auto_compact_limit,
@@ -1078,6 +1081,7 @@ fn parse_optional_positive_u64(value: &str, label: &str) -> anyhow::Result<Optio
 }
 
 fn apply_context_limits_to_config(
+    home: &Path,
     config_text: &str,
     context_window: &str,
     auto_compact_limit: &str,
@@ -1085,11 +1089,79 @@ fn apply_context_limits_to_config(
     let mut doc = parse_toml_document(config_text)?;
     if let Some(value) = parse_optional_positive_u64(context_window, "上下文大小")? {
         doc["model_context_window"] = toml_edit::value(value as i64);
+        ensure_custom_model_catalog(home, &mut doc, value)?;
     }
     if let Some(value) = parse_optional_positive_u64(auto_compact_limit, "压缩上下文大小")? {
         doc["model_auto_compact_token_limit"] = toml_edit::value(value as i64);
     }
     Ok(normalize_optional_toml(doc))
+}
+
+/// Generate a custom model catalog file for non-standard models that have
+/// an explicit `model_context_window` set. This allows Codex CLI to find
+/// the model in its catalog lookup and use the user-specified context window.
+///
+/// Skips generation if:
+/// - `model_catalog_json` is already set in the config
+/// - No `model` is configured
+fn ensure_custom_model_catalog(
+    home: &Path,
+    doc: &mut DocumentMut,
+    context_window: u64,
+) -> anyhow::Result<()> {
+    // Don't override an existing model_catalog_json setting
+    if doc.contains_key("model_catalog_json") {
+        return Ok(());
+    }
+
+    // Read model name from the TOML doc
+    let model = doc
+        .get("model")
+        .and_then(|item| item.as_str())
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string());
+
+    let model = match model {
+        Some(m) if !m.is_empty() => m,
+        _ => return Ok(()),
+    };
+
+    let catalog_filename = "model_catalog_custom.json";
+    let catalog_path = home.join(catalog_filename);
+
+    // Use a display name derived from the slug
+    let display_name = model
+        .split(['-', '_'])
+        .map(|part| {
+            let mut chars = part.chars();
+            match chars.next() {
+                None => String::new(),
+                Some(c) => c.to_uppercase().to_string() + chars.as_str(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    let catalog = serde_json::json!({
+        "models": [{
+            "slug": model,
+            "display_name": display_name,
+            "base_instructions": "You are Codex, a coding agent that helps users write code.",
+            "context_window": context_window,
+            "max_context_window": context_window,
+            "effective_context_window_percent": 95
+        }]
+    });
+
+    let catalog_json = serde_json::to_string_pretty(&catalog)
+        .with_context(|| "序列化自定义模型目录失败")?;
+    crate::settings::atomic_write(&catalog_path, catalog_json.as_bytes())
+        .with_context(|| format!("写入自定义模型目录 {} 失败", catalog_path.display()))?;
+
+    doc["model_catalog_json"] = toml_edit::value(catalog_path.to_string_lossy().to_string());
+
+    Ok(())
 }
 
 fn toml_value_is_subset(target: &toml_edit::Value, source: &toml_edit::Value) -> bool {
