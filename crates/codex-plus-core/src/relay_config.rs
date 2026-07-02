@@ -403,6 +403,7 @@ pub fn apply_relay_profile_to_home_with_switch_rules_and_computer_use_guard(
         &profile.auto_compact_limit,
     )?;
     let config_with_catalog = apply_model_catalog_to_config(home, profile, &config_with_limits)?;
+    let config_with_catalog = apply_custom_catalog_fallback(home, &config_with_catalog, profile)?;
 
     if profile.relay_mode == crate::settings::RelayMode::PureApi {
         apply_relay_files_to_home_with_computer_use_guard(
@@ -447,6 +448,7 @@ pub fn apply_relay_config_file_to_home(
     home: &Path,
     config_contents: &str,
 ) -> anyhow::Result<RelayApplyResult> {
+    let config_contents = config_contents.strip_prefix('\u{feff}').unwrap_or(config_contents);
     if config_contents.trim().is_empty() {
         anyhow::bail!("config.toml 内容不能为空");
     }
